@@ -46,8 +46,11 @@ public class Slc extends Application {
     private boolean ssd;// selected solid value
     // --------------------------------
     private double cameraX=0.0, cameraY=0.0;
+    // --------------------------------
     private Drawable so; // selected object
     private ImageView preview; // object preview
+    // --------------------------------
+    private ObjectPicker objPicker;
     
     // Triggers
     // [     action  		needsZ        specialValue  removeAfterInteraction  x  y     width           height  (special2) (special3) ]
@@ -90,6 +93,9 @@ public class Slc extends Application {
         stage.setTitle("Sheep Level Creator v0.3");
         stage.setScene(scene);
         stage.show();
+        stage.setOnCloseRequest((e) -> {
+        	objPicker.close();
+        });
     }
     
     private void drawLevel(){
@@ -174,7 +180,11 @@ public class Slc extends Application {
         preview = new ImageView(AssetsManager.getImage(sti));
         preview.setViewOrder(-2);
         
+        objPicker = new ObjectPicker();
+        objPicker.resize(scene.getWidth(), scene.getHeight());
+        
         objects = new Level();
+        
         
         drawHUD();
     }
@@ -298,14 +308,42 @@ public class Slc extends Application {
             updateLabels();
             updateSelectedObject();
         });
+        scene.widthProperty().addListener((ce) -> {
+        	positionHUD();
+        });
         scene.heightProperty().addListener((ce) -> {
         	positionHUD();
         });
     }
     
+    private static final int AREA_LEVEL = 0;
+    private static final int AREA_NODE_TREE = 1;
+    private static final int AREA_PREVIEW_IMAGE = 2;
+    private int getClickArea(double x, double y) {
+    	if (preview.getBoundsInParent().contains(x,y)) return AREA_PREVIEW_IMAGE;
+    	if (nodeTreePane.getBoundsInParent().contains(x,y)) return AREA_NODE_TREE;
+    	return AREA_LEVEL;
+    }
+    
     private void mouseEvent(MouseEvent evt) {
+    	switch(getClickArea(evt.getX(),evt.getY())) {
+    		case AREA_LEVEL:
+    			levelMouseEvent(evt); return;
+    		case AREA_PREVIEW_IMAGE:
+    			previewImageMouseEvent(evt); return;
+    		default:return;
+    	}
+    }
+    
+    private void previewImageMouseEvent(MouseEvent evt) {
+    	System.out.println("preview clicked");
+    	// TODO: block picker u posebnom ekranu
+    	objPicker.show();
+    }
+    
+    private void levelMouseEvent(MouseEvent evt) {
     	if (evt.getButton()==MouseButton.PRIMARY && !inMenu){
-        	addObject(magnetize(evt.getX()+cameraX-30),magnetize(evt.getY()+cameraY-30));
+    		addObject(magnetize(evt.getX()+cameraX-30),magnetize(evt.getY()+cameraY-30));
         } else if (evt.getButton()==MouseButton.SECONDARY){
             ArrayList<Node> toKill = new ArrayList<>();
             for (Node n : objects){
