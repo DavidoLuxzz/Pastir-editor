@@ -1,5 +1,7 @@
 package slc;
 
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Bounds;
 import javafx.scene.image.ImageView;
 
 // WARNING: this format is new, and thus do not rage quit
@@ -165,4 +167,8 @@ public class Drawable extends ImageView {
     }
     public void setSolid(boolean s) {    solid = s;   }
     public boolean isSolid() 		{  return solid;  }
+    
+    public static Bounds createHitbox(double minx, double miny, double w, double h){
+        return new BoundingBox(minx, miny, w, h);
+    }
 }

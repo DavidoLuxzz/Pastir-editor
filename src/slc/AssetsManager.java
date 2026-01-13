@@ -19,9 +19,11 @@ public class AssetsManager {
 	}
 	
 	
-	public static Image[] images;
+	public static Image[] images = null;
+	public static Image INVALID_TEXTURE = null;
 	
 	public static void loadImages(int scalex, int scaley) {
+		INVALID_TEXTURE = getImage("invalid.png",scalex,scaley);
 		images = new Image[Drawable.TEXTURES.length];
 		int i = 0;
 		for (String name : Drawable.TEXTURES) {
