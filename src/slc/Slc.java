@@ -8,6 +8,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.ColorAdjust;
@@ -36,15 +37,16 @@ public class Slc extends Application {
 	// -------------------------------
 	private Label angleSign;
 	private Label coordsSign;
-	private Label stiSign, solSign, sogSign, ssvSign, ssv2Sign, ssdSign;
-	private Label reloadedSign;
-	private Label selectedObjTypeSign;
+	private Label stiSign, solSign, sogSign, ssvSign, ssv2Sign, ssdSign, sbvSign;
+	private Slider ssvSlider,ssv2Slider,sbvSlider;
+	private Label helperSign;
 	private Pane infoPane;
 	public static int sti; // selected texture id
 	public static int sol; // selected layer
 	public static int sog; // selected group
-	public static int ssv; // selected special value
-	public static int ssv2;// selected special2 value
+	public static int ssv; // selected hue value
+	public static int ssv2;// selected saturation value
+	public static int sbv; // selected brightness value
 	public static boolean ssd;// selected solid value
 	// --------------------------------
 	private double cameraX = 0.0, cameraY = 0.0;
@@ -95,9 +97,9 @@ public class Slc extends Application {
 		positionHUD();
 		reposition();
 
-		printHelpInfo();
+		// printHelpInfo();
 
-		stage.setTitle("Sheep Level Creator v0.3");
+		stage.setTitle("Sheep Level Creator v0.4");
 		stage.setScene(scene);
 		stage.show();
 		stage.setOnCloseRequest((e) -> {
@@ -107,12 +109,13 @@ public class Slc extends Application {
 	}
 
 	private void drawLevel() {
+		objects.clear();
 		for (int[] data : lvl) {
 			// order: textureid, group, layer, solid, angle, scalex, scaley
 			Drawable drw = new Drawable(data);
 			objects.add(drw);
 		}
-		root.getChildren().add(objects.lvl);
+		if (!root.getChildren().contains(objects.lvl)) root.getChildren().add(objects.lvl);
 	}
 
 	private void drawHUD() {
@@ -130,15 +133,43 @@ public class Slc extends Application {
 		sogSign = new Label(String.valueOf(sog));
 		ssvSign = new Label(String.valueOf(ssv));
 		ssv2Sign = new Label(String.valueOf(ssv2));
-		ssdSign = new Label(String.valueOf(ssv));
+		sbvSign = new Label(String.valueOf(sbv));
+		ssdSign = new Label(String.valueOf(ssd));
+		
+		
+		ssvSlider = new Slider(-180, 180, 0); // hue
+		ssvSlider.setBlockIncrement(1);
+		ssvSlider.valueProperty().addListener(e -> {
+			if (!ssvSlider.isValueChanging()) return;
+			ssv = (int) ssvSlider.getValue();
+			updateLabels();
+			updateSelectedObject();
+		});
+		ssv2Slider = new Slider(-100, 100, 0); // saturation
+		ssv2Slider.setBlockIncrement(1);
+		ssv2Slider.valueProperty().addListener(e -> {
+			if (!ssv2Slider.isValueChanging()) return;
+			ssv2 = (int) ssv2Slider.getValue();
+			updateLabels();
+			updateSelectedObject();
+		});
+		sbvSlider = new Slider(-100, 100, 0); // brightness
+		sbvSlider.setBlockIncrement(1);
+		sbvSlider.valueProperty().addListener(e -> {
+			if (!sbvSlider.isValueChanging()) return;
+			sbv = (int) sbvSlider.getValue();
+			updateLabels();
+			updateSelectedObject();
+		});
 
-		infoPane = new Pane(angleSign, coordsSign, stiSign, solSign, sogSign, ssvSign, ssv2Sign, ssdSign);
+		infoPane = new Pane(angleSign, coordsSign, stiSign, solSign, sogSign, ssvSign, ssv2Sign, sbvSign, ssdSign);
 		infoPane.setViewOrder(-1.0);
 		for (Node n : infoPane.getChildren()) {
 			Label sign = (Label) n;
 			sign.setTextFill(Color.WHITE);
 			sign.setFont(Font.font("DejaVu Sans", 20));
 		}
+		infoPane.getChildren().addAll(ssvSlider,ssv2Slider,sbvSlider);
 	}
 
 	private void initAdditionalCommandNodes() {
@@ -187,8 +218,11 @@ public class Slc extends Application {
 		loadNodeTree();
 		nodeTreePane.setViewOrder(-3);
 
-		reloadedSign = new Label("RELOADED LEVEL!");
-		selectedObjTypeSign = new Label("OBJECT TYPE CHANGED!");
+		helperSign = new Label("Reloaded level");
+		helperSign.setFont(Font.font(36));
+		helperSign.setTextFill(Color.WHITE);
+		helperSign.setVisible(false);
+		root.getChildren().add(helperSign);
 
 		preview = new ImageView(AssetsManager.getImage(sti));
 		preview.setViewOrder(-2);
@@ -200,10 +234,11 @@ public class Slc extends Application {
 		});
 
 		objects = new Level();
+		objects.lvl.setViewOrder(2); // pozadi
 
 		soEffect = new ColorAdjust();
-		soEffect.setBrightness(+0.3);
-		soEffect.setHue(-0.1);
+		soEffect.setBrightness(+0.4);
+		soEffect.setSaturation(+0.1);
 
 		drawHUD();
 	}
@@ -243,12 +278,17 @@ public class Slc extends Application {
 
 	private void updateSelectedObject() {
 		if (so != null && soIndex >= 0) {
-			so.updateData(ssd, sol, sog, ssv, ssv2);
+			so.updateData(ssd, sol, sog, ssv, ssv2, sbv);
 			int[] soData = so.createData();
 			lvl.set(soIndex, soData);
 			nodeTree.set(soIndex, LvlLoader.iats(soData));
 			updateNodeTreeLabelsNoNew();
 		}
+	}
+	
+	private void updateObjectAndLabels() {
+		updateSelectedObject();
+		updateLabels();
 	}
 
 	private void updateLabels() {
@@ -263,8 +303,9 @@ public class Slc extends Application {
 		solSign.setText("layer: " + sol);
 		sogSign.setText("group: " + sog);
 		ssdSign.setText("solid: " + ssd);
-		ssvSign.setText("spec: " + ssv);
-		ssv2Sign.setText("spec2: " + ssv2);
+		ssvSign.setText("Hue: " + ssv);
+		ssv2Sign.setText("Saturation: " + ssv2);
+		sbvSign.setText("Brightness: "+sbv);
 	}
 
 	private int magnetize(double x) {
@@ -274,27 +315,43 @@ public class Slc extends Application {
 
 	private void reloadLevel() {
 		drawLevel();
-		root.getChildren().add(reloadedSign);
+		helperSign.setText("Reloaded Level");
+		helperSign.setVisible(true);
 	}
 
 	private void select(Drawable drw) {
-		deselect();
+		deselectForNextSelect();
 		so = drw;
 		soIndex = objects.indexOf(drw);
-		so.setEffect(soEffect);
+		so.setTemporaryTint(soEffect);
+		sog = drw.getGroup();
+		sol = drw.getLayer();
+		ssd = drw.isSolid();
+		ssv = drw.getTintHue();
+		ssv2 = drw.getTintSaturation();
+		updateLabels();
+		ssvSlider.setValue(ssv);
+		ssv2Slider.setValue(ssv2);
+		sbvSlider.setValue(sbv);
 	}
 
-	private void deselect() {
+	private void deselectForNextSelect() {
 		if (so == null)
 			return;
-		so.setEffect(null);
+		so.setTemporaryTint(null);
 		so = null;
 		soIndex = -1;
+	}
+	
+	private void deselect() { // full deselect
+		deselectForNextSelect();
+		lastSelectedID = -1;
+		sog = 0; sol = 0; ssd = false; ssv = 0; ssv2 = 0;
 	}
 
 	private void addObject(double x, double y) {
 		ssd = Drawable.isSolid(sti);
-		Drawable drw = new Drawable(sti, sog, sol, ssd, 0, 100, 100);
+		Drawable drw = new Drawable(sti, sog, sol, ssd, 0, 100, 100, ssv,ssv2,sbv);
 		drw.relocate(x, y);
 		// drw.setImage(AssetsManager.getImage(0)); debug (removal)
 		root.getChildren().add(drw);
@@ -313,24 +370,20 @@ public class Slc extends Application {
 	}
 
 	private double mouseLastX, mouseLastY;
-	private boolean mouseMoveFlag = true;
+	private boolean mouseMoveFlag = false;
 	private double mouseDeltaX, mouseDeltaY;
 
 	private void initEvents() {
 		scene.setOnMouseReleased(evt -> {
 			if (!mouseMoveFlag) {
 				mouseEvent(evt);
-
-				if (root.getChildren().contains(reloadedSign))
-					root.getChildren().remove(reloadedSign);
-				if (root.getChildren().contains(selectedObjTypeSign))
-					root.getChildren().remove(selectedObjTypeSign);
 	
 				updateLabels();
 			}
-				mouseDeltaX = 0;
-				mouseDeltaY = 0;
-				mouseMoveFlag = false;
+			mouseDeltaX = 0;
+			mouseDeltaY = 0;
+			mouseMoveFlag = false;
+			helperSign.setVisible(false);
 		});
 		scene.setOnMouseDragged(evt -> {
 			double dx = evt.getX() - mouseLastX;
@@ -370,8 +423,6 @@ public class Slc extends Application {
 		});
 		scene.setOnKeyPressed(evt -> {
 			keyPressEvent(evt);
-			updateLabels();
-			updateSelectedObject();
 		});
 		scene.widthProperty().addListener((ce) -> {
 			positionHUD();
@@ -433,23 +484,44 @@ public class Slc extends Application {
 		else if (ssv2Sign.getBoundsInParent().contains(x, y))
 			ssv2 += dv;
 
-		updateLabels();
-		updateSelectedObject();
+		updateObjectAndLabels();
 	}
 
 	private void previewImageMouseEvent(MouseEvent evt) {
 		objPicker.show();
 	}
-
+	private int lastSelectedID = -1;
 	private void levelMouseEvent(MouseEvent evt) {
 		if (evt.getButton() == MouseButton.PRIMARY && !inMenu) {
-			addObject(magnetize(evt.getX() + cameraX - 30), magnetize(evt.getY() + cameraY - 30));
+			if (!evt.isShiftDown()) {
+				addObject(magnetize(evt.getX() + cameraX - 30), magnetize(evt.getY() + cameraY - 30));
+			} else {
+				int firstID=-1;
+				int i=0;
+				for (Node n : objects) {
+					if (n.getBoundsInParent().contains(evt.getX()+cameraX, evt.getY()+cameraY)) {
+						System.out.println(lastSelectedID+", "+i);
+						if (i>lastSelectedID) {
+							select((Drawable)n);
+							lastSelectedID = i;
+							return; // return, a ne break
+						}
+						if (firstID<0) {
+							firstID = i;
+						}
+					}
+					i++;
+				}
+				if (firstID>0) {
+					select(objects.get(firstID));
+					lastSelectedID = firstID;
+				}
+			}
 		} else if (evt.getButton() == MouseButton.SECONDARY) {
 			ArrayList<Node> toKill = new ArrayList<>();
 			for (Node n : objects) {
-				if (magnetize(n.getLayoutX()) == magnetize(evt.getX() + cameraX - 30))
-					if (magnetize(n.getLayoutY()) == magnetize(evt.getY() + cameraY - 30))
-						toKill.add(n);
+				if (n.getBoundsInParent().contains(evt.getX()+cameraX, evt.getY()+cameraY))
+					toKill.add(n);
 			}
 			deselect();
 			for (Node n : toKill) {
@@ -469,7 +541,8 @@ public class Slc extends Application {
 				break;
 			case ENTER: // save
 				LvlLoader lvlL = new LvlLoader();
-				lvlL.save(lvl, commandArea.getText());
+				helperSign.setText(lvlL.save(lvl, commandArea.getText())?("File "+LvlLoader.filename+" saved!"):"Problem saving file!");
+				helperSign.setVisible(true);
 				break;
 			case BACK_SPACE:
 				if (soIndex > 0) {
@@ -477,6 +550,7 @@ public class Slc extends Application {
 				}
 				break;
 			case R:
+				deselect();
 				reloadLevel();
 				break;
 			case Q: // clear level
@@ -485,30 +559,36 @@ public class Slc extends Application {
 						so.setScaleX(-so.getScaleX());
 					break;
 				}
+				deselect();
 				lvl.clear();
 				objects.clear();
 				clearNodeTree();
-				so = null;
-				soIndex = -1;
 				break;
 			case E:
-				if (so != null)
+				if (so != null) {
 					so.setScaleY(-so.getScaleY());
+					updateObjectAndLabels();
+				}
 				break;
 			case RIGHT: // layer
 				sol++;
+				updateObjectAndLabels();
 				break;
 			case LEFT: // layer
 				sol--;
+				updateObjectAndLabels();
 				break;
 			case UP:
 				sog++;
+				updateObjectAndLabels();
 				break;
 			case DOWN:
 				sog--;
+				updateObjectAndLabels();
 				break;
 			case SPACE:
 				ssd = !ssd;
+				updateObjectAndLabels();
 				break;
 			case Z: // angle
 				if (so != null) {
@@ -517,6 +597,7 @@ public class Slc extends Application {
 					else
 						so.setRotate(so.getRotate() - 45);
 					lvl.get(lvl.size() - 1)[Drawable.COMP_ANGLE] = (int) so.getRotate();
+					updateObjectAndLabels();
 				}
 				break;
 			case X:
@@ -526,31 +607,37 @@ public class Slc extends Application {
 					else
 						so.setRotate(so.getRotate() + 45);
 					lvl.get(lvl.size() - 1)[Drawable.COMP_ANGLE] = (int) so.getRotate();
+					updateObjectAndLabels();
 				}
 				break;
 			case W: // SHIFT ili ALT ==>
-				if (so != null)
+				if (so != null) {
 					so.setLayoutY(so.getLayoutY() - (evt.isAltDown() ? 1 : (evt.isShiftDown() ? 8 : 64)));
+					updateObjectAndLabels();
+				}
 				break;
 			case S:
-				if (so != null)
+				if (so != null) {
 					so.setLayoutY(so.getLayoutY() + (evt.isAltDown() ? 1 : (evt.isShiftDown() ? 8 : 64)));
+					updateObjectAndLabels();
+				}
 				break;
 			case A:
-				if (so != null)
+				if (so != null) {
 					so.setLayoutX(so.getLayoutX() - (evt.isAltDown() ? 1 : (evt.isShiftDown() ? 8 : 64)));
+					updateObjectAndLabels();
+				}
 				break;
 			case D:
 				if (evt.isControlDown()) {
 					deselect();
-					break;
-				}
-				if (evt.isMetaDown()) {
+				} else if (evt.isMetaDown()) {
 					// duplicate
-					break;
-				}
-				if (so != null)
+					addObject(so.getLayoutX(),so.getLayoutY());
+				} else if (so != null) {
 					so.setLayoutX(so.getLayoutX() + (evt.isAltDown() ? 1 : (evt.isShiftDown() ? 8 : 64)));
+					updateObjectAndLabels();
+				}
 				break;
 			case TAB:
 				if (root.getChildren().contains(additionalCommands))
@@ -583,7 +670,7 @@ public class Slc extends Application {
 			}
 	}
 
-	private void printHelpInfo() {
+	public static void printHelpInfo() {
 		System.out.println("Controls:");
 		System.out.println("ESCAPE: quit program");
 		System.out.println("ENTER: save level");
@@ -624,12 +711,20 @@ public class Slc extends Application {
 		ssdSign.relocate(10, 50);
 		solSign.relocate(10, 70);
 		sogSign.relocate(10, 90);
+		// hsb
 		ssvSign.relocate(10, 110);
+		ssvSlider.relocate(160, 115);
 		ssv2Sign.relocate(10, 130);
-		angleSign.relocate(10, 150);
+		ssv2Slider.relocate(160, 135);
+		sbvSign.relocate(10, 150);
+		sbvSlider.relocate(160, 155);
+		
+		angleSign.relocate(10, 170);
 
 		preview.relocate(16, scene.getHeight() - 80);
 		nodeTreePane.relocate(scene.getWidth() - 200, 5);
+		
+		helperSign.relocate(100, scene.getHeight()-60);
 	}
 
 	private void reposition() {

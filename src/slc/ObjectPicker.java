@@ -82,7 +82,7 @@ public class ObjectPicker {
 		int col=0,row=0;
 		grid = new Bounds[Drawable.TEXTURES.length];
 		for (int i=0; i<Drawable.TEXTURES.length; i++) {
-			Drawable d = new Drawable(i, 0, 0, false, 0, 100, 100);
+			Drawable d = new Drawable(i, 0, 100,100);
 			d.relocate(OFFSET+col*70, OFFSET+row*70);
 			grid[i] = Drawable.createHitbox(d.getLayoutX()+objects.getLayoutX(), d.getLayoutY()+objects.getLayoutY(), 64, 64);
 			if (d.getImage().getWidth()>100) {

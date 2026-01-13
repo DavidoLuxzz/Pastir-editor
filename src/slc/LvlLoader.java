@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class LvlLoader {
-	private static final String filename = "3.txt";
+	public static final String filename = "3.txt";
     private ArrayList<int[]> l;
     private String additionalCommands;
     public LvlLoader(){
@@ -18,7 +18,7 @@ public class LvlLoader {
     public boolean successLoad(){
         try {
             File myObj = new File(filename);
-            System.out.println(myObj.getAbsolutePath());
+        // System.out.println(myObj.getAbsolutePath());
             Scanner myReader = new Scanner(myObj);
             while (myReader.hasNextLine()) {
             	String line = myReader.nextLine();
@@ -29,6 +29,7 @@ public class LvlLoader {
                 	additionalCommands += line+"\n";
                 	continue;
                 }
+                // parse
                 int[] obj = new int[Drawable.MAX_COMPONENTS];
                 int index = 0;
                 for (String comp : data) {
@@ -71,7 +72,7 @@ public class LvlLoader {
         s+="box "+maxw+" "+maxh+"\n";
         return s;
     }
-    public void save(ArrayList<int[]> lvl, String additionalCommands){
+    public boolean save(ArrayList<int[]> lvl, String additionalCommands){
         try {
             FileWriter myWriter = new FileWriter(filename);
             String fullData = alts(lvl);
@@ -83,9 +84,11 @@ public class LvlLoader {
             }
             myWriter.write(fullData);
             myWriter.close();
-            System.out.println("FILE "+filename.toUpperCase()+" SAVED!");
+          // System.out.println("FILE "+filename.toUpperCase()+" SAVED!");
         } catch (IOException e) {
             System.out.println("An error occurred.");
+            return false;
         }
+        return true;
     }
 }
