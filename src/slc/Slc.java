@@ -324,6 +324,8 @@ public class Slc extends Application {
 		so = drw;
 		soIndex = objects.indexOf(drw);
 		so.setTemporaryTint(soEffect);
+		sti = drw.getTexture();
+		preview.setImage(AssetsManager.getImage(sti));
 		sog = drw.getGroup();
 		sol = drw.getLayer();
 		ssd = drw.isSolid();
@@ -347,6 +349,7 @@ public class Slc extends Application {
 		deselectForNextSelect();
 		lastSelectedID = -1;
 		sog = 0; sol = 0; ssd = false; ssv = 0; ssv2 = 0;
+		updateLabels();
 	}
 
 	private void addObject(double x, double y) {
@@ -354,6 +357,16 @@ public class Slc extends Application {
 		Drawable drw = new Drawable(sti, sog, sol, ssd, 0, 100, 100, ssv,ssv2,sbv);
 		drw.relocate(x, y);
 		// drw.setImage(AssetsManager.getImage(0)); debug (removal)
+		root.getChildren().add(drw);
+		objects.add(drw);
+		lvl.add(drw.createData());
+		select(drw);
+		loadNodeTree();
+	}
+
+	private void duplicateObject(Drawable n) {
+		Drawable drw = new Drawable(n.createData());
+		drw.relocate(n.getLayoutX(), n.getLayoutY());
 		root.getChildren().add(drw);
 		objects.add(drw);
 		lvl.add(drw.createData());
@@ -447,8 +460,13 @@ public class Slc extends Application {
 		return AREA_LEVEL;
 	}
 
+	private int getSmartClickArea(double x, double y) {
+		if (!infoPane.isVisible()) return AREA_LEVEL;
+		else return getClickArea(x, y);
+	}
+
 	private void mouseEvent(MouseEvent evt) {
-		switch (getClickArea(evt.getX(), evt.getY())) {
+		switch (getSmartClickArea(evt.getX(), evt.getY())) {
 		case AREA_LEVEL:
 			levelMouseEvent(evt);
 			return;
@@ -479,11 +497,17 @@ public class Slc extends Application {
 			sol += dv;
 		else if (sogSign.getBoundsInParent().contains(x, y))
 			sog += dv;
-		else if (ssvSign.getBoundsInParent().contains(x, y))
+		else if (ssvSign.getBoundsInParent().contains(x, y)) {
 			ssv += dv;
-		else if (ssv2Sign.getBoundsInParent().contains(x, y))
+			ssvSlider.setValue(ssv);
+		} else if (ssv2Sign.getBoundsInParent().contains(x, y)) {
 			ssv2 += dv;
-
+			ssv2Slider.setValue(ssv2);
+		} else if (sbvSign.getBoundsInParent().contains(x, y)) {
+			sbv += dv;
+			sbvSlider.setValue(sbv);
+		} else
+			return;
 		updateObjectAndLabels();
 	}
 
@@ -500,7 +524,6 @@ public class Slc extends Application {
 				int i=0;
 				for (Node n : objects) {
 					if (n.getBoundsInParent().contains(evt.getX()+cameraX, evt.getY()+cameraY)) {
-						System.out.println(lastSelectedID+", "+i);
 						if (i>lastSelectedID) {
 							select((Drawable)n);
 							lastSelectedID = i;
@@ -538,6 +561,9 @@ public class Slc extends Application {
 			switch (evt.getCode()) {
 			case ESCAPE:
 				System.exit(0);
+				break;
+			case F1:
+				toggleHUD();
 				break;
 			case ENTER: // save
 				LvlLoader lvlL = new LvlLoader();
@@ -592,25 +618,29 @@ public class Slc extends Application {
 				break;
 			case Z: // angle
 				if (so != null) {
-					if (!evt.isAltDown())
+					if (evt.isAltDown())
 						so.setRotate(so.getRotate() - 1);
-					else
+					else if (evt.isShiftDown())
 						so.setRotate(so.getRotate() - 45);
-					lvl.get(lvl.size() - 1)[Drawable.COMP_ANGLE] = (int) so.getRotate();
+					else
+						so.setRotate(so.getRotate() - 90);
+					lvl.get(soIndex)[Drawable.COMP_ANGLE] = (int) so.getRotate();
 					updateObjectAndLabels();
 				}
 				break;
 			case X:
 				if (so != null) {
-					if (!evt.isAltDown())
+					if (evt.isAltDown())
 						so.setRotate(so.getRotate() + 1);
-					else
+					else if (evt.isShiftDown())
 						so.setRotate(so.getRotate() + 45);
-					lvl.get(lvl.size() - 1)[Drawable.COMP_ANGLE] = (int) so.getRotate();
+					else
+						so.setRotate(so.getRotate() + 90);
+					lvl.get(soIndex)[Drawable.COMP_ANGLE] = (int) so.getRotate();
 					updateObjectAndLabels();
 				}
 				break;
-			case W: // SHIFT ili ALT ==>
+			case W: // move
 				if (so != null) {
 					so.setLayoutY(so.getLayoutY() - (evt.isAltDown() ? 1 : (evt.isShiftDown() ? 8 : 64)));
 					updateObjectAndLabels();
@@ -633,7 +663,7 @@ public class Slc extends Application {
 					deselect();
 				} else if (evt.isMetaDown()) {
 					// duplicate
-					addObject(so.getLayoutX(),so.getLayoutY());
+					duplicateObject(so);
 				} else if (so != null) {
 					so.setLayoutX(so.getLayoutX() + (evt.isAltDown() ? 1 : (evt.isShiftDown() ? 8 : 64)));
 					updateObjectAndLabels();
@@ -726,6 +756,24 @@ public class Slc extends Application {
 		
 		helperSign.relocate(100, scene.getHeight()-60);
 	}
+
+	private void hideHUD() {
+		infoPane.setVisible(false);
+		nodeTreePane.setVisible(false);
+		preview.setVisible(false);
+	}
+	private void showHUD() {
+		infoPane.setVisible(true);
+		nodeTreePane.setVisible(true);
+		preview.setVisible(true);
+	}
+	private void toggleHUD() {
+		if (infoPane.isVisible())
+			hideHUD();
+		else
+			showHUD();
+	}
+
 
 	private void reposition() {
 		objects.lvl.relocate(-cameraX, -cameraY);

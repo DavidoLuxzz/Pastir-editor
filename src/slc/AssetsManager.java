@@ -5,8 +5,8 @@ import javafx.scene.media.Media;
 import javafx.scene.text.Font;
 
 public class AssetsManager {
-	
-	// use Sheep assets
+
+	// use game assets
 	public static String ASSETS_DIRECTORY = "file:"+System.getProperty("user.home")+"/eclipse-workspace/Pastir-igrica/assets/";
 	
 	public static void init() {}
