@@ -7,7 +7,7 @@ import javafx.scene.text.Font;
 public class AssetsManager {
 	
 	// use Sheep assets
-	public static String ASSETS_DIRECTORY = "file:/Users/luka/eclipse-workspace/Sheep/assets/";
+	public static String ASSETS_DIRECTORY = "file:"+System.getProperty("user.home")+"/eclipse-workspace/Pastir-igrica/assets/";
 	
 	public static void init() {}
 	
@@ -40,6 +40,8 @@ public class AssetsManager {
 	public static final int ENTITY_IMAGE_NIKE_SHOES = 1;
 	
 	public static void loadEntityImages() {
+        System.out.println(".()");
+        System.out.println(ASSETS_DIRECTORY);
 		if (ENTITY_IMAGES != null) {
 			System.err.println("Tried to regenerate entity image list.");
 			return;
