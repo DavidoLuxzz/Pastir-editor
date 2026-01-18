@@ -67,16 +67,7 @@ public class AssetsManager {
         return img;
     }
     public static Image getImage(String asset, int scalex, int scaley){ // Needed to be getImage(String,double,double) but JFX ducked up
-        Image img = null;
-        Image instance;
-        try {
-            instance = new Image(getAbsoluteAssetURIPath(asset));
-            img = new Image(getAbsoluteAssetURIPath(asset), scalex*instance.getWidth(), scaley*instance.getHeight(), false, false);
-        } catch (Exception e) {
-            System.err.println("ups");
-        }
-        instance = null;
-        return img;
+        return getImage(asset, (double)scalex, (double)scaley);
     }
     public static Media getMusic(String song){
         Media mus = null;
