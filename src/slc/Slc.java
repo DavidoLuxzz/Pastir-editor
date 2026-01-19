@@ -740,7 +740,6 @@ public class Slc extends Application {
                 updateObjectsAndLabels();
                 break;
             case Z: // angle
-                int index = 0;
                 for (Drawable so : sobjs) {
                     if (so != null) {
                         if (evt.isAltDown())
@@ -755,7 +754,6 @@ public class Slc extends Application {
                 updateNodeTree();
                 break;
             case X:
-                index = 0;
                 for (Drawable so : sobjs) {
                     if (so != null) {
                         if (evt.isAltDown())
