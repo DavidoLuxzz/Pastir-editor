@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import javafx.application.Application;
+import javafx.collections.ListChangeListener;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -107,6 +108,9 @@ public class Slc extends Application {
             objPicker.close();
         });
         objPicker.initialPosition(stage.getX() + stage.getWidth(), stage.getY() + stage.getHeight());
+        objects.lvl.getChildren().addListener((ListChangeListener<? super Node>)e -> {
+            updateNodeTree();
+        });
     }
 
     private void drawLevel() {
@@ -177,7 +181,7 @@ public class Slc extends Application {
         commandArea = new TextArea();
         commandArea.setPromptText("Add custom commands here:");
         commandArea.setPrefHeight(300);
-        commandArea.relocate(50, 4);
+        commandArea.relocate(300, 40);
         commandArea.setOnKeyPressed((e) -> {
             if (e.getCode() == KeyCode.TAB) {
                 hideAdditionalCommands();
@@ -246,16 +250,60 @@ public class Slc extends Application {
         drawHUD();
     }
 
+    // /**
+    //  * No change on list size
+    //  */
+    // private void updateNodeTreeLabelsNoNew() {
+    //     int index = 1;
+    //     for (String s : nodeTree) {
+    //         ((Label) nodeTreePane.getChildren().get(index++)).setText(s);
+    //     }
+    // }
+
+    private static final int NODE_TREE_Y_RAZMAK = 14;
     /**
-     * No change on list size
+     * Updates full node tree.
+     * Steps:
+     *  - check if object list has GROWN (doesn't remove any labels, only creates them)
+     *  - updates text of all labels
+     *  - hides all other labels
      */
-    private void updateNodeTreeLabelsNoNew() {
-        int index = 1;
-        for (String s : nodeTree) {
-            ((Label) nodeTreePane.getChildren().get(index++)).setText(s);
+    private void updateNodeTree(){
+        // new responsibility: lvl (ArrayList<int[]>)
+        int ycoord = nodeTree.size()*NODE_TREE_Y_RAZMAK;
+        while (objects.lvl.getChildren().size()>nodeTree.size()){
+            Label lab = new Label("fix me");
+            lab.setFont(new Font("Helvetica Bold", 12));
+            lab.setTextFill(Color.WHITE);
+            lab.relocate(0, ycoord);
+
+            nodeTree.add("fix me");
+            nodeTreePane.getChildren().add(lab);
+            ycoord += NODE_TREE_Y_RAZMAK;
+        }
+        for (int i=0; i<objects.lvl.getChildren().size(); i++){
+            int[] data = ((Drawable)objects.lvl.getChildren().get(i)).createData();
+            
+            if (i>=lvl.size())
+                lvl.add(data);
+            else
+                lvl.set(i, data);
+            
+            
+            String s = LvlLoader.iats(data);
+            ((Label) nodeTreePane.getChildren().get(i+1)).setText(s);
+            ((Label) nodeTreePane.getChildren().get(i+1)).setVisible(true);
+        }
+        for (int i=objects.lvl.getChildren().size(); i<nodeTree.size(); i++){
+            nodeTreePane.getChildren().get(i+1).setVisible(false);
+        }
+        while (lvl.size() > objects.lvl.getChildren().size()){
+            lvl.removeLast();
         }
     }
-
+    /**
+     * Creates full node tree
+     */
     private void loadNodeTree() {
         int ycoord = 0;
         clearNodeTree();
@@ -269,7 +317,7 @@ public class Slc extends Application {
 
             nodeTree.add(s);
             nodeTreePane.getChildren().add(lab);
-            ycoord += 14;
+            ycoord += NODE_TREE_Y_RAZMAK;
         }
     }
 
@@ -280,17 +328,13 @@ public class Slc extends Application {
     }
 
     private void updateSelectedObjects() {
-        int index = 0;
         for (Drawable so : sobjs){
             int soIndex = objects.indexOf(so); // soIndices.get(index++);
             if (so != null && soIndex >= 0) {
                 so.updateData(ssd, sol, sog, ssv, ssv2, sbv);
-                int[] soData = so.createData();
-                lvl.set(soIndex, soData);
-                nodeTree.set(soIndex, LvlLoader.iats(soData));
-                updateNodeTreeLabelsNoNew();
             }
         }
+        updateNodeTree();
     }
     
     private void updateObjectsAndLabels() {
@@ -400,9 +444,8 @@ public class Slc extends Application {
         // drw.setImage(AssetsManager.getImage(0)); debug (removal)
         // root.getChildren().add(drw);
         objects.add(drw);
-        lvl.add(data);
         // select(drw);
-        loadNodeTree();
+        updateNodeTree();
         return drw;
     }
 
@@ -413,9 +456,8 @@ public class Slc extends Application {
         // drw.setImage(AssetsManager.getImage(0)); debug (removal)
         // root.getChildren().add(drw);
         objects.add(drw);
-        lvl.add(drw.createData());
         // select(drw);
-        loadNodeTree();
+        updateNodeTree();
         return drw;
     }
 
@@ -437,9 +479,12 @@ public class Slc extends Application {
     private void removeObject(Drawable n) {
         // root.getChildren().remove(n);
         int index = objects.indexOf(n);
-        lvl.remove(index);
         objects.remove(index);
-        loadNodeTree();
+        updateNodeTree();
+    }
+
+    private void removeAll(Collection<? extends Drawable> objs) {
+        objects.lvl.getChildren().removeAll(objs);
     }
 
     private double mouseLastX, mouseLastY;
@@ -640,15 +685,16 @@ public class Slc extends Application {
             case F1:
                 toggleHUD();
                 break;
+            case F2: // debug dugme
+                System.out.println(sobjs.size());
+                break;
             case ENTER: // save
                 LvlLoader lvlL = new LvlLoader();
                 helperSign.setText(lvlL.save(lvl, commandArea.getText())?("File "+LvlLoader.filename+" saved!"):"Problem saving file!");
                 helperSign.setVisible(true);
                 break;
             case BACK_SPACE:
-                for (Drawable so : sobjs)
-                    if (so!=null)
-                        removeObject(so);
+                removeAll(sobjs);
                 break;
             case R:
                 deselect();
@@ -662,7 +708,6 @@ public class Slc extends Application {
                     break;
                 }
                 deselect();
-                lvl.clear();
                 objects.clear();
                 clearNodeTree();
                 break;
@@ -704,10 +749,10 @@ public class Slc extends Application {
                             so.setRotate(so.getRotate() - 45);
                         else
                             so.setRotate(so.getRotate() - 90);
-                        lvl.get(soIndices.get(index))[Drawable.COMP_ANGLE] = (int) so.getRotate();
                         updateObjectsAndLabels();
                     }
                 }
+                updateNodeTree();
                 break;
             case X:
                 index = 0;
@@ -719,10 +764,10 @@ public class Slc extends Application {
                             so.setRotate(so.getRotate() + 45);
                         else
                             so.setRotate(so.getRotate() + 90);
-                        lvl.get(soIndices.get(index))[Drawable.COMP_ANGLE] = (int) so.getRotate();
                         updateObjectsAndLabels();
                     }
                 }
+                updateNodeTree();
                 break;
             case W: // move
                 for (Drawable so : sobjs) {

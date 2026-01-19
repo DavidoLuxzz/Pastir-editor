@@ -53,7 +53,7 @@ public class ObjectPicker {
 		stage.setResizable(false);
 		initEvents();
 		stage.setTitle("block");
-		stage.show();
+		// stage.show(); // hidden at start
 	}
 	/** @params x,y Screen coords */
 	public void relocate(double x, double y) {
