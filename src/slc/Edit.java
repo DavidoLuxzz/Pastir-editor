@@ -6,11 +6,36 @@ public class Edit {
     public static int id = 0;
     private int thisID;
 
-    private int[] targetDrawableStateOld;
-    private int[] targetDrawableState;
-    private int drawableID;
+    public int[][] targetDrawableStatesOld;
+    public int[][] targetDrawableStates;
+    public int[] drawableIDs;
 
     public Edit(){}
+
+    /**
+     * Initializes the drawableIDs list
+     * @param numberOfEditedDrawables size of the list
+     */
+    public Edit(int numberOfEditedDrawables) {
+        drawableIDs = new int[numberOfEditedDrawables];
+        thisID = id++;
+    }
+
+    public int[][] getTargetDrawableStatesOld() {
+        return targetDrawableStatesOld;
+    }
+
+    public void setTargetDrawableStatesOld(int[][] targetDrawableStatesOld) {
+        this.targetDrawableStatesOld = targetDrawableStatesOld;
+    }
+
+    public int[][] getTargetDrawableStates() {
+        return targetDrawableStates;
+    }
+
+    public void setTargetDrawableStates(int[][] targetDrawableStates) {
+        this.targetDrawableStates = targetDrawableStates;
+    }
 
     public Edit(Runnable action) {
         this.action = action;
@@ -21,21 +46,37 @@ public class Edit {
         thisID = id++;
     }
 
-    public Edit(int targetID, int[] oldstate, int[] newstate) {
-        this.drawableID = targetID;
-        this.targetDrawableState = newstate;
-        this.targetDrawableStateOld = oldstate;
+    public Edit(int[] targetIDs, int[][] oldstates, int[][] newstates) {
+        this.drawableIDs = targetIDs;
+        this.targetDrawableStates = newstates;
+        this.targetDrawableStatesOld = oldstates;
     }
 
     public String toString(){
         return "Edit #"+thisID;
     }
 
-    public int getDrawableID() {
-        return drawableID;
+    public int[] getDrawableIDs() {
+        return drawableIDs;
     }
-    public void setDrawableID(int di) {
-        this.drawableID = di;
+    public void setDrawableIDs(int[] dis) {
+        this.drawableIDs = dis;
+    }
+    /**
+     * 
+     * @param index index in drawableIDs array
+     * @param drawableID
+     */
+    public void setDrawableID(int index, int drawableID) {
+        this.drawableIDs[index] = drawableID;
+    }
+    /**
+     * 
+     * @param index index in drawableIDs array
+     * @return
+     */
+    public int getDrawableID(int index) {
+        return this.drawableIDs[index];
     }
 
     /**
@@ -43,16 +84,31 @@ public class Edit {
      */
     public void redo(){
         if (action!=null) action.run();
-        if (targetDrawableState != null)
-            Slc.objects.get(drawableID).updateData(targetDrawableState);
+        if (drawableIDs != null  &&  targetDrawableStates != null) {
+            for (int i = 0; i < drawableIDs.length; i++) {
+                int drawableID = drawableIDs[i];
+                if (i>=targetDrawableStates.length) break; // continue treba al ajde
+                if (targetDrawableStates[i] != null)
+                    Slc.objects.get(drawableID).updateData(targetDrawableStates[i]);
+            }
+        }
+        //if (targetDrawableState != null)
+         //   Slc.objects.get(drawableID).updateData(targetDrawableState);
     }
     /**
      * counterAction.run();
      */
     public void undo(){
         if (counterAction!=null) counterAction.run();
-        if (targetDrawableStateOld != null)
-            Slc.objects.get(drawableID).updateData(targetDrawableStateOld);
+        if (drawableIDs != null  &&  targetDrawableStatesOld != null){
+            for (int i = 0; i < drawableIDs.length; i++) {
+                int drawableID = drawableIDs[i];
+                if (i>=targetDrawableStatesOld.length) break; // continue treba al ajde
+                if (targetDrawableStatesOld[i] != null)
+                    Slc.objects.get(drawableID).updateData(targetDrawableStatesOld[i]);
+            }
+        }
+        
     }
 
     public Runnable getAction() {

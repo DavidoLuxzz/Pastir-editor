@@ -610,6 +610,21 @@ public class Slc extends Application {
         });
     }
 
+    /**
+     * Adds edit to change list.
+     * Will not run edit action nor counter action.
+     */
+    private void addEdit(Edit edit) {
+        if (currentChangeIndex>=MAX_EDITS) {
+            currentChangeIndex = MAX_EDITS-1;
+            System.arraycopy(changes, 1, changes, 0, MAX_EDITS-1);
+            changes[currentChangeIndex++] = edit;
+        } else {
+            changes[currentChangeIndex++] = edit;
+        }
+        System.out.println(Arrays.toString(changes) + ", index="+currentChangeIndex);
+    }
+
     private static final int AREA_LEVEL = 0;
     private static final int AREA_NODE_TREE = 1;
     private static final int AREA_PREVIEW_IMAGE = 2;
@@ -691,27 +706,17 @@ public class Slc extends Application {
             if (!evt.isShiftDown()) {
                 //Drawable d = addObject(magnetize(evt.getX() + cameraX - 30), magnetize(evt.getY() + cameraY - 30));
                 // select(d);
-
-                Edit edit = new Edit();
+                Edit edit = new Edit(1);
                 edit.setAction(()->{
                     Drawable drw = addObject(magnetize(evt.getX() + cameraX - 30), magnetize(evt.getY() + cameraY - 30));
                     select(drw);
-                    edit.setDrawableID(objects.indexOf(drw));
+                    edit.setDrawableID(0, objects.indexOf(drw));
                 });
-                edit.setCounterAction(()->{
-                    removeObject(objects.get(edit.getDrawableID()));
-                });
+                edit.setCounterAction(()->{   removeObject(objects.get(edit.getDrawableID(0)));   });
 
                 edit.action.run();
 
-                if (currentChangeIndex>=MAX_EDITS) {
-                    currentChangeIndex = MAX_EDITS-1;
-                    System.arraycopy(changes, 1, changes, 0, MAX_EDITS-1);
-                    changes[currentChangeIndex++] = edit;
-                } else {
-                    changes[currentChangeIndex++] = edit;
-                }
-                System.out.println(Arrays.toString(changes) + ", index="+currentChangeIndex);
+                addEdit(edit);
             } else {
                 int firstID=-1;
                 int i=0;
@@ -734,15 +739,45 @@ public class Slc extends Application {
                 }
             }
         } else if (evt.getButton() == MouseButton.SECONDARY) {
-            ArrayList<Node> toKill = new ArrayList<>();
+            int[] toKill = new int[MAX_SELECTION_COUNT];
+            int[][] oldstates = new int[Drawable.MAX_COMPONENTS][MAX_SELECTION_COUNT];
+            int index = 0;
             for (Node n : objects) {
-                if (n.getBoundsInParent().contains(evt.getX()+cameraX, evt.getY()+cameraY))
-                    toKill.add(n);
+                if (n.getBoundsInParent().contains(evt.getX()+cameraX, evt.getY()+cameraY)) {
+                    toKill[index] = objects.indexOf(n);
+                    oldstates[index] = ((Drawable) n).createData();
+                    index++;
+                }
             }
             deselect();
-            for (Node n : toKill) {
-                removeObject((Drawable) n);
-            }
+
+            if (index==0) return;
+            
+            Edit edit = new Edit(index);
+            edit.setDrawableIDs(Arrays.copyOf(toKill, index));
+            edit.setTargetDrawableStates(null);
+            edit.setTargetDrawableStatesOld(Arrays.copyOf(oldstates, index));
+
+            toKill = null;
+            oldstates = null;
+
+            edit.setAction(()->{
+                for (int drawableID : edit.getDrawableIDs()) {
+                    removeObject(objects.get(drawableID));
+                }
+            });
+            edit.setCounterAction(()->{
+                deselect();
+                for (int i = 0; i < edit.getDrawableIDs().length; i++) {
+                    Drawable drw = addObject(edit.getTargetDrawableStatesOld()[i]);
+                    addSelection(drw);
+                    edit.setDrawableID(i, objects.indexOf(drw));
+                }
+            });
+
+            edit.action.run();
+
+            addEdit(edit);
             //if (!toKill.isEmpty())
              //   loadNodeTree(); // ?!
             updateNodeTree();
