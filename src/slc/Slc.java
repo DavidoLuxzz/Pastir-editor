@@ -1,6 +1,7 @@
 package slc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 
 import javafx.application.Application;
@@ -31,6 +32,10 @@ import javafx.stage.Stage;
  * 
  *         TODO: Napraviti unos za Triggere (triggere najbolje ispisati na kraju
  *         programa u outputu) Mozda koristiti TextFieldove za ez unos.
+ * 
+ *         TODO: Napraviti interface za unos novih tekstura.
+ * 
+ *         TODO: Undo, Redo
  */
 public class Slc extends Application {
     private Pane root;
@@ -61,6 +66,11 @@ public class Slc extends Application {
     // --------------------------------
     private ObjectPicker objPicker;
 
+    // --------------------------------
+    private static final int MAX_EDITS = 3;
+    private Edit[] changes;
+    private int currentChangeIndex = 0;
+
     // Triggers
     // [ action needsZ specialValue removeAfterInteraction x y width height
     // (special2) (special3) ]
@@ -79,7 +89,7 @@ public class Slc extends Application {
     private Pane nodeTreePane;
     private ArrayList<String> nodeTree;
 
-    private Level objects;
+    public static Level objects;
 
     @Override
     public void start(Stage stage) {
@@ -205,6 +215,7 @@ public class Slc extends Application {
     }
 
     private void initElements() {
+        changes = new Edit[MAX_EDITS];
         sobjs = new ArrayList<>();
         soIndices = new ArrayList<>();
         initAdditionalCommandNodes();
@@ -487,6 +498,26 @@ public class Slc extends Application {
         objects.lvl.getChildren().removeAll(objs);
     }
 
+
+    private void undoLastEdit(){
+        int index = currentChangeIndex-1;
+        if (index<0) return; // no edits
+        changes[index].undo();
+        currentChangeIndex--;
+    }
+
+    private void redoLastUndo(){
+        if (currentChangeIndex>=MAX_EDITS) return; // was no undo before redo (no avaiable redo)
+        if (changes[currentChangeIndex]!=null){
+            changes[currentChangeIndex].redo();
+            currentChangeIndex++;
+        }
+    }
+
+
+
+
+
     private double mouseLastX, mouseLastY;
     private boolean mouseMoveFlag = false;
     private double mouseDeltaX, mouseDeltaY;
@@ -638,7 +669,30 @@ public class Slc extends Application {
     private void levelMouseEvent(MouseEvent evt) {
         if (evt.getButton() == MouseButton.PRIMARY && !inMenu) {
             if (!evt.isShiftDown()) {
-                select(addObject(magnetize(evt.getX() + cameraX - 30), magnetize(evt.getY() + cameraY - 30)));
+                //Drawable d = addObject(magnetize(evt.getX() + cameraX - 30), magnetize(evt.getY() + cameraY - 30));
+                // select(d);
+
+                Edit edit = new Edit();
+                edit.setAction(()->{
+                    Drawable drw = addObject(magnetize(evt.getX() + cameraX - 30), magnetize(evt.getY() + cameraY - 30));
+                    select(drw);
+                    edit.setDrawableID(objects.indexOf(drw));
+                });
+                edit.setCounterAction(()->{
+                    removeObject(objects.get(edit.getDrawableID()));
+                });
+
+                edit.action.run();
+
+                if (currentChangeIndex>=MAX_EDITS) {
+                    currentChangeIndex = MAX_EDITS-1;
+                    System.arraycopy(changes, 1, changes, 0, MAX_EDITS-1);
+                    changes[currentChangeIndex++] = edit;
+                } else {
+                    changes[currentChangeIndex++] = edit;
+                }
+                
+                System.out.println(Arrays.toString(changes) + ", index="+currentChangeIndex);
             } else {
                 int firstID=-1;
                 int i=0;
@@ -740,16 +794,23 @@ public class Slc extends Application {
                 updateObjectsAndLabels();
                 break;
             case Z: // angle
-                for (Drawable so : sobjs) {
-                    if (so != null) {
-                        if (evt.isAltDown())
-                            so.setRotate(so.getRotate() - 1);
-                        else if (evt.isShiftDown())
-                            so.setRotate(so.getRotate() - 45);
-                        else
-                            so.setRotate(so.getRotate() - 90);
-                        updateObjectsAndLabels();
+                if (!evt.isMetaDown()){
+                    for (Drawable so : sobjs) {
+                        if (so != null) {
+                            if (evt.isAltDown())
+                                so.setRotate(so.getRotate() - 1);
+                            else if (evt.isShiftDown())
+                                so.setRotate(so.getRotate() - 45);
+                            else
+                                so.setRotate(so.getRotate() - 90);
+                            updateObjectsAndLabels();
+                        }
                     }
+                } else {
+                    if (evt.isShiftDown())
+                        redoLastUndo();
+                    else
+                        undoLastEdit();
                 }
                 updateNodeTree();
                 break;

@@ -107,14 +107,14 @@ public class Drawable extends ImageView {
                     int angle, int scalex, int scaley,
                     int hue, int saturation, int brightness) {
         super(AssetsManager.getImage(textureid));
-        init(textureid, group, layer, solid, angle, scalex, scaley, hue, saturation, brightness);
+        init(textureid, group, layer, solid, angle, scalex, scaley, hue, saturation, brightness, false);
     }
 
     public Drawable(int[] data) {
         super(AssetsManager.getImage(data[COMP_TEXTURE_ID]));
         init(data[COMP_TEXTURE_ID], data[COMP_GROUP], data[COMP_LAYER], data[COMP_SOLID] > 0, data[COMP_ANGLE],
                 data[COMP_SCALEX], data[COMP_SCALEY],
-                data[COMP_TINT_HUE], data[COMP_TINT_SATURATION], data[COMP_TINT_BRIGHTNESS]);
+                data[COMP_TINT_HUE], data[COMP_TINT_SATURATION], data[COMP_TINT_BRIGHTNESS], false);
         relocate(data[COMP_X], data[COMP_Y]);
         // setTintHue(data[COMP_SPECIAL]);
         // setTintSaturation(data[COMP_SPECIAL2]);
@@ -129,6 +129,14 @@ public class Drawable extends ImageView {
         setSolid(solid);
         setLayer(layer);
         setGroup(group);
+    }
+
+    public void updateData(int[] data){
+        setImage(AssetsManager.getImage(data[COMP_TEXTURE_ID]));
+        init(data[COMP_TEXTURE_ID], data[COMP_GROUP], data[COMP_LAYER], data[COMP_SOLID] > 0, data[COMP_ANGLE],
+                data[COMP_SCALEX], data[COMP_SCALEY],
+                data[COMP_TINT_HUE], data[COMP_TINT_SATURATION], data[COMP_TINT_BRIGHTNESS],  true);
+        relocate(data[COMP_X], data[COMP_Y]);
     }
 
     public int[] createData() {
@@ -202,8 +210,10 @@ public class Drawable extends ImageView {
     }
 
     public void init(int textureid, int group, int layer, boolean solid, int angle, int scalex, int scaley, int hue,
-            int saturation, int brightness) {
-                setSmooth(false);
+            int saturation, int brightness,
+            boolean update
+        ) {
+        setSmooth(false);
         this.texture = textureid;
         setLayer(layer);
         setGroup(group);
@@ -213,7 +223,8 @@ public class Drawable extends ImageView {
         setScaleX(scalex / 100.0);
         setScaleY(scaley / 100.0);
 
-        tint = new ColorAdjust();
+        if (!update)
+            tint = new ColorAdjust();
         // blend = new Blend(BlendMode.SRC_OVER);
         // blend.setBottomInput(tint);
         setTint(hue, saturation, brightness);
