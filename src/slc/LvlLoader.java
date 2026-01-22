@@ -8,18 +8,21 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class LvlLoader {
-	public static final String filename = "3.txt";
+	public File file;
     private ArrayList<int[]> l;
-    private String additionalCommands;
-    public LvlLoader(){
+    private String additionalCommands = "";
+    public LvlLoader(String filename){
+        file = new File(filename);
         l = new ArrayList<>();
-        additionalCommands = "";
+    }
+    public LvlLoader(File file) {
+        this.file = file;
+        l = new ArrayList<>();
     }
     public boolean successLoad(){
         try {
-            File myObj = new File(filename);
         // System.out.println(myObj.getAbsolutePath());
-            Scanner myReader = new Scanner(myObj);
+            Scanner myReader = new Scanner(file);
             while (myReader.hasNextLine()) {
             	String line = myReader.nextLine();
                 String[] data = line.split(" ");
@@ -74,7 +77,7 @@ public class LvlLoader {
     }
     public boolean save(ArrayList<int[]> lvl, String additionalCommands){
         try {
-            FileWriter myWriter = new FileWriter(filename);
+            FileWriter myWriter = new FileWriter(file);
             String fullData = alts(lvl);
             if (additionalCommands.length()>0) {
 	            if (additionalCommands.endsWith("\n"))

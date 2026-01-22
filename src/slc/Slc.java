@@ -25,6 +25,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 /**
@@ -40,6 +41,7 @@ import javafx.stage.Stage;
 public class Slc extends Application {
     private Pane root;
     private Scene scene;
+    private Stage stage;
     private ArrayList<int[]> lvl;
     private boolean inMenu;
     // -------------------------------
@@ -90,15 +92,18 @@ public class Slc extends Application {
     private ArrayList<String> nodeTree;
 
     public static Level objects;
+    private LvlLoader lvlLoader;
 
     @Override
     public void start(Stage stage) {
+        this.stage = stage;
         root = new Pane();
         root.setStyle("-fx-background-color: black");
         scene = new Scene(root, 1200, 700, Color.BLACK);
 
         AssetsManager.loadImages(4, 4);
 
+        loadLevel();
         initElements();
         initEvents();
 
@@ -188,7 +193,7 @@ public class Slc extends Application {
     }
 
     private void initAdditionalCommandNodes() {
-        commandArea = new TextArea();
+        commandArea = new TextArea(lvlLoader.getAdditionalCommands());
         commandArea.setPromptText("Add custom commands here:");
         commandArea.setPrefHeight(300);
         commandArea.relocate(300, 40);
@@ -214,16 +219,20 @@ public class Slc extends Application {
         root.requestFocus();
     }
 
+    private void loadLevel() {
+        FileChooser fileChooser = new FileChooser();
+        lvlLoader = new LvlLoader(fileChooser.showOpenDialog(stage));
+        if (lvlLoader.successLoad()) {
+            lvl = lvlLoader.getLevel();
+        }
+    }
+
     private void initElements() {
         changes = new Edit[MAX_EDITS];
         sobjs = new ArrayList<>();
         soIndices = new ArrayList<>();
         initAdditionalCommandNodes();
-        LvlLoader lvlLoader = new LvlLoader();
-        if (lvlLoader.successLoad()) {
-            lvl = lvlLoader.getLevel();
-            commandArea.setText(lvlLoader.getAdditionalCommands());
-        }
+        
         initObjectRelatedLabels();
 
         nodeTree = new ArrayList<String>();
@@ -691,7 +700,6 @@ public class Slc extends Application {
                 } else {
                     changes[currentChangeIndex++] = edit;
                 }
-                
                 System.out.println(Arrays.toString(changes) + ", index="+currentChangeIndex);
             } else {
                 int firstID=-1;
@@ -743,8 +751,7 @@ public class Slc extends Application {
                 System.out.println(sobjs.size());
                 break;
             case ENTER: // save
-                LvlLoader lvlL = new LvlLoader();
-                helperSign.setText(lvlL.save(lvl, commandArea.getText())?("File "+LvlLoader.filename+" saved!"):"Problem saving file!");
+                helperSign.setText(lvlLoader.save(lvl, commandArea.getText())?(lvlLoader.file.getAbsolutePath()+" saved!"):"Problem saving file!");
                 helperSign.setVisible(true);
                 break;
             case BACK_SPACE:
