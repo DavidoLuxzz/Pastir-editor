@@ -1,5 +1,6 @@
 package slc;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -9,7 +10,6 @@ import javafx.collections.ListChangeListener;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
@@ -67,7 +67,10 @@ public class Slc extends Application {
     private ColorAdjust soEffect;
     // --------------------------------
     private ObjectPicker objPicker;
-
+    // --------------------------------
+    private FileChooser fileChooser;
+    // --------------------------------
+    private Button mainButton;
     // --------------------------------
     private static final int MAX_EDITS = 3;
     private Edit[] changes;
@@ -92,7 +95,7 @@ public class Slc extends Application {
     private ArrayList<String> nodeTree;
 
     public static Level objects;
-    private LvlLoader lvlLoader;
+    public static LvlLoader lvlLoader;
 
     @Override
     public void start(Stage stage) {
@@ -108,7 +111,6 @@ public class Slc extends Application {
         initEvents();
 
         drawLevel();
-        // drawSheep();
 
         updateLabels();
         positionHUD();
@@ -119,6 +121,7 @@ public class Slc extends Application {
         stage.setTitle("Sheep Level Creator v0.4");
         stage.setScene(scene);
         stage.show();
+// contextMenu.show(stage, 500, 400);
         stage.setOnCloseRequest((e) -> {
             objPicker.close();
         });
@@ -139,6 +142,8 @@ public class Slc extends Application {
     }
 
     private void drawHUD() {
+        root.getChildren().add(mainButton);
+
         root.getChildren().add(infoPane);
         root.getChildren().add(nodeTreePane);
 
@@ -220,11 +225,15 @@ public class Slc extends Application {
     }
 
     private void loadLevel() {
-        FileChooser fileChooser = new FileChooser();
+        fileChooser = new FileChooser();
         lvlLoader = new LvlLoader(fileChooser.showOpenDialog(stage));
         if (lvlLoader.successLoad()) {
             lvl = lvlLoader.getLevel();
         }
+    }
+
+    private void initMainButton(){
+        mainButton = new Button();
     }
 
     private void initElements() {
@@ -232,7 +241,7 @@ public class Slc extends Application {
         sobjs = new ArrayList<>();
         soIndices = new ArrayList<>();
         initAdditionalCommandNodes();
-        
+        initMainButton();
         initObjectRelatedLabels();
 
         nodeTree = new ArrayList<String>();
@@ -604,7 +613,7 @@ public class Slc extends Application {
     private static final int AREA_LEVEL = 0;
     private static final int AREA_NODE_TREE = 1;
     private static final int AREA_PREVIEW_IMAGE = 2;
-    private static final int AREA_OBJECT_INFO = 3;
+    private static final int AREA_HUD = 3;
 
     private int getClickArea(double x, double y) {
         if (preview.getBoundsInParent().contains(x, y))
@@ -612,7 +621,7 @@ public class Slc extends Application {
         if (nodeTreePane.getBoundsInParent().contains(x, y))
             return AREA_NODE_TREE;
         if (infoPane.getBoundsInParent().contains(x, y))
-            return AREA_OBJECT_INFO;
+            return AREA_HUD;
         return AREA_LEVEL;
     }
 
@@ -629,15 +638,15 @@ public class Slc extends Application {
         case AREA_PREVIEW_IMAGE:
             previewImageMouseEvent(evt);
             return;
-        case AREA_OBJECT_INFO:
-            objInfoMouseEvent(evt);
+        case AREA_HUD:
+            hudMouseEvent(evt);
             return;
         default:
             return;
         }
     }
 
-    private void objInfoMouseEvent(MouseEvent evt) {
+    private void hudMouseEvent(MouseEvent evt) {
         int dv = 0;
         if (evt.getButton() == MouseButton.PRIMARY)
             dv = 1;
@@ -662,6 +671,8 @@ public class Slc extends Application {
         } else if (sbvSign.getBoundsInParent().contains(x, y)) {
             sbv += dv;
             sbvSlider.setValue(sbv);
+        } else if (mainButton.getBoundsInParent().contains(x, y)) {
+            mainButton.handleEvent(evt);
         } else
             return;
         updateObjectsAndLabels();
@@ -732,9 +743,9 @@ public class Slc extends Application {
             for (Node n : toKill) {
                 removeObject((Drawable) n);
             }
-            if (!toKill.isEmpty())
-                loadNodeTree(); // ?!
-
+            //if (!toKill.isEmpty())
+             //   loadNodeTree(); // ?!
+            updateNodeTree();
         }
     }
 
@@ -751,11 +762,12 @@ public class Slc extends Application {
                 System.out.println(sobjs.size());
                 break;
             case ENTER: // save
-                helperSign.setText(lvlLoader.save(lvl, commandArea.getText())?(lvlLoader.file.getAbsolutePath()+" saved!"):"Problem saving file!");
-                helperSign.setVisible(true);
+                saveFile();
                 break;
             case BACK_SPACE:
                 removeAll(sobjs);
+                sobjs.clear();
+                soIndices.clear();
                 break;
             case R:
                 deselect();
@@ -940,22 +952,35 @@ public class Slc extends Application {
         System.out.println("But type \"tr\" at the start");
     }
 
-    private void positionHUD() {
-        stiSign.relocate(10, 10);
-        coordsSign.relocate(10, 30);
-        ssdSign.relocate(10, 50);
-        solSign.relocate(10, 70);
-        sogSign.relocate(10, 90);
-        // hsb
-        ssvSign.relocate(10, 110);
-        ssvSlider.relocate(160, 115);
-        ssv2Sign.relocate(10, 130);
-        ssv2Slider.relocate(160, 135);
-        sbvSign.relocate(10, 150);
-        sbvSlider.relocate(160, 155);
-        
-        angleSign.relocate(10, 170);
+    private void saveFile() {
+        File f = fileChooser.showSaveDialog(stage);
+        if (f==null) return;
+        helperSign.setText(lvlLoader.save(f, lvl, commandArea.getText())?(lvlLoader.file.getAbsolutePath()+" saved!"):"Problem saving file!");
+        helperSign.setVisible(true);
+    }
 
+    private void positionHUD() {
+
+        mainButton.relocate(4, 4);
+
+        // ### INFO PANE ### //
+        double isx = 10, isy = 50; // info pane start coords
+        stiSign.relocate(isx, isy);
+        coordsSign.relocate(isx, isy+=20);
+        ssdSign.relocate(isx, isy+=20);
+        solSign.relocate(isx, isy+=20);
+        sogSign.relocate(isx, isy+=20);
+        // hsb
+        ssvSign.relocate(isx, isy+=20);
+        ssvSlider.relocate(isx+150, isy+5);
+        ssv2Sign.relocate(isx, isy+=20);
+        ssv2Slider.relocate(isx+150, isy+5);
+        sbvSign.relocate(isx, isy+=20);
+        sbvSlider.relocate(isx+150, isy+5);
+        // angle
+        angleSign.relocate(isx, isy+=20);
+
+        // other shit
         preview.relocate(16, scene.getHeight() - 80);
         nodeTreePane.relocate(scene.getWidth() - 200, 5);
         

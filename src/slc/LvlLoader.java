@@ -16,10 +16,16 @@ public class LvlLoader {
         l = new ArrayList<>();
     }
     public LvlLoader(File file) {
-        this.file = file;
+        if (file!=null)
+            this.file = file;
+        else {
+            this.file = new File("3.txt");
+            System.out.println(this.file);
+        }
         l = new ArrayList<>();
     }
     public boolean successLoad(){
+        System.out.println(file);
         try {
         // System.out.println(myObj.getAbsolutePath());
             Scanner myReader = new Scanner(file);
@@ -75,9 +81,9 @@ public class LvlLoader {
         s+="box "+maxw+" "+maxh+"\n";
         return s;
     }
-    public boolean save(ArrayList<int[]> lvl, String additionalCommands){
+    public boolean save(File savefile, ArrayList<int[]> lvl, String additionalCommands){
         try {
-            FileWriter myWriter = new FileWriter(file);
+            FileWriter myWriter = new FileWriter(savefile);
             String fullData = alts(lvl);
             if (additionalCommands.length()>0) {
 	            if (additionalCommands.endsWith("\n"))

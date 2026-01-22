@@ -60,6 +60,7 @@ public class AssetsManager {
         try {
             instance = new Image(getAbsoluteAssetURIPath(asset));
             img = new Image(getAbsoluteAssetURIPath(asset), scalex*instance.getWidth(), scaley*instance.getHeight(), false, false);
+            if (img.isError()) System.err.println(img.getException());
         } catch (Exception e) {
             System.err.println("ups: "+asset);
         }
@@ -68,6 +69,18 @@ public class AssetsManager {
     }
     public static Image getImage(String asset, int scalex, int scaley){ // Needed to be getImage(String,double,double) but JFX ducked up
         return getImage(asset, (double)scalex, (double)scaley);
+    }
+    public static Image getImage(String asset) {
+        Image img = null;
+        img = new Image(getAbsoluteAssetURIPath(asset));
+        if (img.isError()) System.err.println(img.getException());
+        return img; 
+    }
+    public static Image getSizedImage(String asset, double width, double height) {
+        Image img = null;
+        img = new Image(getAbsoluteAssetURIPath(asset), width, height, true, true);
+        if (img.isError()) System.err.println(img.getException());
+        return img; 
     }
     public static Media getMusic(String song){
         Media mus = null;
