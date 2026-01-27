@@ -52,8 +52,6 @@ public class Slc extends Application {
     // --------------------------------
     private FileChooser fileChooser;
     // --------------------------------
-    private Button mainButton;
-    // --------------------------------
     private static final int MAX_EDITS = 3;
     private Edit[] changes;
     private int currentChangeIndex = 0;
@@ -534,8 +532,11 @@ public class Slc extends Application {
             oldstates = null;
 
             edit.setAction(()->{
-                for (int drawableID : edit.getDrawableIDs()) {
-                    removeObject(objects.get(drawableID));
+                Arrays.sort(edit.getDrawableIDs());
+                for (int i=edit.getDrawableIDs().length-1; i>=0; i--) {
+                    int noerrorDrawableID = edit.getDrawableID(i);
+                    // System.err.println("to remove: "+noerrorDrawableID+", "+i);
+                    removeObject(objects.get(noerrorDrawableID));
                 }
             });
             edit.setCounterAction(()->{
